@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bunny Hop</title>
+    <link rel="stylesheet" href="css/style.css"></link>
+</head>
+<body>
+    <header>
+        <h2>Bunny Hop - The Game</h2>
+        <div class="game-options">
+            <div class="board-size-dropdown">
+                <label for="board">Select Board Size</label>
+                <select name="board" id="select-size" onchange="getMatrixLength()">
+                    <option value="">Default</option>
+                    <option value="7">7 x 7</option>
+                </select>
+            </div>
+            <button onclick="startGame()">Start</button>
+        </div>
+    </header>
+
+    <div class="board"></div>
+    
+
+    <script src="js/script.js"></script>
+</body>
+</html>
