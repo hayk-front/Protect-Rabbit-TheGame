@@ -28,47 +28,55 @@ header button {
   outline: none;
   border: none;
   border-radius: 8px;
-  background-color: #41A135;
+  background-color: #41a135;
   color: #fff;
 }
-#won{
-    display: none;
-    color: #41A135;
-    font-weight: 700;
-    font-size: 24px;
+#won,
+#lose {
+  display: none;
+  font-weight: 700;
+  font-size: 24px;
+}
+#won {
+  color: #41a135;
+}
+#lose {
+  color: crimson;
 }
 
 .board {
-    position: relative;
-    width: 34%;
-    margin: 2% auto;
-    display: flex;
-    flex-wrap: wrap;
+  position: relative;
+  width: 34%;
+  margin: 2% auto;
+  display: flex;
+  flex-wrap: wrap;
 }
 
-.square{
-    width: 13%;
-    height: 65px;
-    border: 1px solid #000;
-    background-color: #41A135;
+.square {
+  width: 13%;
+  height: 65px;
+  border: 1px solid #000;
+  background-color: #41a135;
 }
-.bunny, .rock, .house, .wolf{
-    width: 100%;
-    height: 100%;
-    background-position: center;
-    background-size: contain;
-    background-repeat: no-repeat;
+.bunny,
+.rock,
+.house,
+.wolf {
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
 }
-.bunny{
-    background-image: url('../images/bunny.png');
+.bunny {
+  background-image: url("../images/bunny.png");
 }
-.wolf{
-    background-image: url('../images/wolf.png');
+.wolf {
+  background-image: url("../images/wolf.png");
 }
-.rock{
-    background-image: url('../images/rock.png');
+.rock {
+  background-image: url("../images/rock.png");
 }
-.house{
-    background-image: url('../images/house.png');
+.house {
+  background-image: url("../images/house.png");
 }
-
