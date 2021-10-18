@@ -1,5 +1,6 @@
 const board = document.querySelector(".board");
-let matrix;
+let wolfsAndRocksCount;
+let MATRIX;
 
 function getMatrixLength() {
   const value = document.querySelector("#select-size").value;
@@ -20,29 +21,29 @@ function setCoordinates(character) {
   const [x, y] = getRandomCoordinates(getMatrixLength());
   switch (character) {
     case "bunny":
-      if (matrix[x][y] === 0) {
-        return (matrix[x][y] = 1);
+      if (MATRIX[x][y] === 0) {
+        return (MATRIX[x][y] = 1);
       } else {
         setCoordinates("bunny");
       }
       break;
     case "wolf":
-      if (matrix[x][y] === 0) {
-        return (matrix[x][y] = 2);
+      if (MATRIX[x][y] === 0) {
+        return (MATRIX[x][y] = 2);
       } else {
         setCoordinates("wolf");
       }
       break;
     case "rock":
-      if (matrix[x][y] === 0) {
-        return (matrix[x][y] = 3);
+      if (MATRIX[x][y] === 0) {
+        return (MATRIX[x][y] = 3);
       } else {
         setCoordinates("rock");
       }
       break;
     case "house":
-      if (matrix[x][y] === 0) {
-        return (matrix[x][y] = 4);
+      if (MATRIX[x][y] === 0) {
+        return (MATRIX[x][y] = 4);
       } else {
         setCoordinates("house");
       }
@@ -52,14 +53,14 @@ function setCoordinates(character) {
 }
 
 function startGame() {
-  matrix = createMatrix(getMatrixLength());
+  MATRIX = createMatrix(getMatrixLength());
+  wolfsAndRocksCount = (getMatrixLength() * 40) / 100;
   board.innerHTML = "";
   board.style.opacity = 1;
   document.getElementById("won").style.display = "none";
   document.getElementById("lose").style.display = "none";
 
-  matrix.forEach((arr) => arr.fill(0));
-  const wolfsAndRocksCount = (getMatrixLength() * 40) / 100;
+  MATRIX.forEach((arr) => arr.fill(0));
   for (let i = 0; i < wolfsAndRocksCount; i++) {
     setCoordinates("wolf");
     setCoordinates("rock");
@@ -98,7 +99,7 @@ function setCharacter(name, x, y) {
 function createUI() {
   board.innerHTML = "";
 
-  matrix.forEach((y, Yaxis) =>
+  MATRIX.forEach((y, Yaxis) =>
     y.forEach((value, Xaxis) => {
       createBoardSquare(Xaxis, Yaxis, getMatrixLength());
 
@@ -122,59 +123,88 @@ function createUI() {
 }
 
 function getBunnyCoordinates() {
-  const y = matrix.findIndex((arr) => arr.includes(1));
-  const x = matrix[y].findIndex((el) => el === 1);
+  const y = MATRIX.findIndex((arr) => arr.includes(1));
+  const x = MATRIX[y].findIndex((el) => el === 1);
   return [x, y];
 }
 
 function getWolfCoordinates() {
-  const allY = matrix.reduce((total, arr, i) => {
+  const allY = MATRIX.reduce((total, arr, i) => {
     arr.forEach((el, index) => {
-        if (el === 2) {
-          total.push(i);
-        }
-      })
+      if (el === 2) {
+        total.push(i);
+      }
+    });
     return total;
   }, []);
 
   const allX = [];
-  matrix.map((arr) =>
+  MATRIX.map((arr) =>
     arr.forEach((el, index) => {
       if (el === 2) {
         allX.push(index);
       }
     })
   );
-  return [
-    [allX[0], allY[0]],
-    [allX[1], allY[1]],
-    [allX[2], allY[2]],
-  ];
+  const wolfCoordinates = [];
+  for(let i = 0; i < wolfsAndRocksCount; i ++){
+    wolfCoordinates.push([allX[i], allY[i]])
+  }
+  return wolfCoordinates;
 }
 
 function changeWolfCooridnates() {
   const [a, b] = getBunnyCoordinates();
   const wolfesCoordinates = getWolfCoordinates();
-  for (let i = 0; i < 3; i++) {
-    console.log(wolfesCoordinates);
+  for (let i = 0; i < wolfsAndRocksCount; i++) {
     const [x, y] = wolfesCoordinates[i];
     let newX,
       newY = null;
 
     if (b === y) {
       a > x ? (newX = x + 1) : (newX = x - 1);
-      if (matrix[y][newX] === 0) {
-        matrix[y].splice(x, 1, 0);
-        matrix[y].splice(newX, 1, 2);
+      if (MATRIX[y][newX] === 0) {
+        MATRIX[y].splice(x, 1, 0);
+        MATRIX[y].splice(newX, 1, 2);
+        moveWolf(x, y, newX, y);
+      } else if (MATRIX[y][newX] === 1) {
+        return endGame("lose");
+      } else {
+        if (MATRIX[y + 1][x] === 0) {
+          MATRIX[y].splice(x, 1, 0);
+          MATRIX[y + 1].splice(x, 1, 2);
+          moveWolf(x, y, x, y + 1);
+        } else if (MATRIX[y - 1][x] === 0) {
+          MATRIX[y].splice(x, 1, 0);
+          MATRIX[y - 1].splice(x, 1, 2);
+          moveWolf(x, y, x, y - 1);
+        }
       }
-      moveWolf(x, y, newX, y);
     } else {
       b > y ? (newY = y + 1) : (newY = y - 1);
-      if (matrix[newY][x] === 0) {
-        matrix[y].splice(x, 1, 0);
-        matrix[newY].splice(x, 1, 2);
+      if (MATRIX[newY][x] === 0) {
+        MATRIX[y].splice(x, 1, 0);
+        MATRIX[newY].splice(x, 1, 2);
+        moveWolf(x, y, x, newY);
+      } else if (MATRIX[newY][x] === 1) {
+        return endGame("lose");
+      } else {
+        if (a > x) {
+          if (MATRIX[y][x + 1] === 0) {
+            MATRIX[y].splice(x, 1, 0);
+            MATRIX[y].splice(x + 1, 1, 2);
+            moveWolf(x, y, x + 1, y);
+          } else if (MATRIX[y][x + 1] === 1) {
+            return endGame("lose");
+          }
+        } else if (MATRIX[y][x - 1] === 0) {
+          MATRIX[y].splice(x, 1, 0);
+          MATRIX[y].splice(x - 1, 1, 2);
+          moveWolf(x, y, x - 1, y);
+        } else if (MATRIX[y][x - 1] === 1) {
+          return endGame("lose");
+        }
       }
-      moveWolf(x, y, x, newY);
     }
   }
 }
@@ -204,72 +234,92 @@ function changeBunnyPosition(oldX, oldY, x, y) {
 
 function moveLeft() {
   const [x, y] = getBunnyCoordinates();
-  if (x !== 0 && matrix[y][x - 1] === 0) {
-    matrix[y].splice(x, 1, 0);
-    matrix[y].splice(x - 1, 1, 1);
+  if (x !== 0 && MATRIX[y][x - 1] === 0) {
+    MATRIX[y].splice(x, 1, 0);
+    MATRIX[y].splice(x - 1, 1, 1);
     changeBunnyPosition(x, null, x - 1, y);
-  } else if (x !== 0 && matrix[y][x - 1] === 4) {
+  } else if (x !== 0 && MATRIX[y][x - 1] === 2) {
+    return endGame("lose");
+  } else if (x !== 0 && MATRIX[y][x - 1] === 4) {
     return endGame("won");
-  } else if (x === 0 && matrix[y][matrix[y].length - 1] === 0) {
-    matrix[y].splice(x, 1, 0);
-    matrix[y].splice(matrix[y].length - 1, 1, 1);
-    changeBunnyPosition(x, null, matrix[y].length - 1, y);
-  } else if (x === 0 && matrix[y][matrix[y].length - 1] === 4) {
+  } else if (x === 0 && MATRIX[y][MATRIX[y].length - 1] === 0) {
+    MATRIX[y].splice(x, 1, 0);
+    MATRIX[y].splice(MATRIX[y].length - 1, 1, 1);
+    changeBunnyPosition(x, null, MATRIX[y].length - 1, y);
+  } else if (x === 0 && MATRIX[y][MATRIX[y].length - 1] === 2) {
+    return endGame("lose");
+  } else if (x === 0 && MATRIX[y][MATRIX[y].length - 1] === 4) {
     return endGame("won");
   }
+
   return changeWolfCooridnates();
 }
 
 function moveRight() {
   const [x, y] = getBunnyCoordinates();
-  if (x !== matrix[y].length - 1 && matrix[y][x + 1] === 0) {
-    matrix[y].splice(x, 1, 0);
-    matrix[y].splice(x + 1, 1, 1);
+  if (x !== MATRIX[y].length - 1 && MATRIX[y][x + 1] === 0) {
+    MATRIX[y].splice(x, 1, 0);
+    MATRIX[y].splice(x + 1, 1, 1);
     changeBunnyPosition(x, null, x + 1, y);
-  } else if (x !== matrix[y].length - 1 && matrix[y][x + 1] === 4) {
+  } else if (x !== MATRIX[y].length - 1 && MATRIX[y][x + 1] === 2) {
+    return endGame("lose");
+  } else if (x !== MATRIX[y].length - 1 && MATRIX[y][x + 1] === 4) {
     return endGame("won");
-  } else if (x === matrix[y].length - 1 && matrix[y][0] === 0) {
-    matrix[y].splice(x, 1, 0);
-    matrix[y].splice(0, 1, 1);
+  } else if (x === MATRIX[y].length - 1 && MATRIX[y][0] === 0) {
+    MATRIX[y].splice(x, 1, 0);
+    MATRIX[y].splice(0, 1, 1);
     changeBunnyPosition(x, null, 0, y);
-  } else if (x === matrix[y].length - 1 && matrix[y][0] === 4) {
+  } else if (x === MATRIX[y].length - 1 && MATRIX[y][0] === 2) {
+    return endGame("lose");
+  } else if (x === MATRIX[y].length - 1 && MATRIX[y][0] === 4) {
     return endGame("won");
   }
+
   return changeWolfCooridnates();
 }
 
 function moveUp() {
   const [x, y] = getBunnyCoordinates();
-  if (y !== 0 && matrix[y - 1][x] === 0) {
-    matrix[y].splice(x, 1, 0);
-    matrix[y - 1].splice(x, 1, 1);
+  if (y !== 0 && MATRIX[y - 1][x] === 0) {
+    MATRIX[y].splice(x, 1, 0);
+    MATRIX[y - 1].splice(x, 1, 1);
     changeBunnyPosition(null, y, x, y - 1);
-  } else if (y !== 0 && matrix[y - 1][x] === 4) {
+  } else if (y !== 0 && MATRIX[y - 1][x] === 2) {
+    return endGame("lose");
+  } else if (y !== 0 && MATRIX[y - 1][x] === 4) {
     return endGame("won");
-  } else if (y === 0 && matrix[matrix.length - 1][x] === 0) {
-    matrix[y].splice(x, 1, 0);
-    matrix[matrix.length - 1].splice(x, 1, 1);
-    changeBunnyPosition(null, y, x, matrix.length - 1);
-  } else if (y === 0 && matrix[matrix.length - 1][x] === 4) {
+  } else if (y === 0 && MATRIX[MATRIX.length - 1][x] === 0) {
+    MATRIX[y].splice(x, 1, 0);
+    MATRIX[MATRIX.length - 1].splice(x, 1, 1);
+    changeBunnyPosition(null, y, x, MATRIX.length - 1);
+  } else if (y === 0 && MATRIX[MATRIX.length - 1][x] === 2) {
+    return endGame("lose");
+  } else if (y === 0 && MATRIX[MATRIX.length - 1][x] === 4) {
     return endGame("won");
   }
+
   return changeWolfCooridnates();
 }
 function moveDown() {
   const [x, y] = getBunnyCoordinates();
-  if (y !== matrix.length - 1 && matrix[y + 1][x] === 0) {
-    matrix[y].splice(x, 1, 0);
-    matrix[y + 1].splice(x, 1, 1);
+  if (y !== MATRIX.length - 1 && MATRIX[y + 1][x] === 0) {
+    MATRIX[y].splice(x, 1, 0);
+    MATRIX[y + 1].splice(x, 1, 1);
     changeBunnyPosition(null, y, x, y + 1);
-  } else if (y !== matrix[y].length - 1 && matrix[y + 1][x] === 4) {
+  } else if (y !== MATRIX[y].length - 1 && MATRIX[y + 1][x] === 2) {
+    return endGame("lose");
+  } else if (y !== MATRIX[y].length - 1 && MATRIX[y + 1][x] === 4) {
     return endGame("won");
-  } else if (y === matrix.length - 1 && matrix[0][x] === 0) {
-    matrix[y].splice(x, 1, 0);
-    matrix[0].splice(x, 1, 1);
+  } else if (y === MATRIX.length - 1 && MATRIX[0][x] === 0) {
+    MATRIX[y].splice(x, 1, 0);
+    MATRIX[0].splice(x, 1, 1);
     changeBunnyPosition(null, y, x, 0);
-  } else if (y === matrix[y].length - 1 && matrix[0][x] === 4) {
+  } else if (y === MATRIX[y].length - 1 && MATRIX[0][x] === 2) {
+    return endGame("lose");
+  } else if (y === MATRIX[y].length - 1 && MATRIX[0][x] === 4) {
     return endGame("won");
   }
+
   return changeWolfCooridnates();
 }
 
