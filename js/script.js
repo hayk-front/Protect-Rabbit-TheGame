@@ -1,6 +1,25 @@
 const board = document.querySelector(".board");
+let selectedMatrixSize;
 let wolfsAndRocksCount;
 let MATRIX;
+
+const freeCell = 0;
+const bunnyId = 1;
+const wolfId = 2;
+const rockId = 3;
+const houseId = 4;
+
+const bunnyImg = "../images/bunny.png";
+const wolfImg = "../images/wolf.png";
+const rockImg = "../images/rock.png";
+const houseImg = "../images/house.png";
+
+const characters = {
+  bunny: { name: "bunny", id: bunnyId, img: bunnyImg },
+  wolf: { name: "wolf", id: wolfId, img: wolfImg },
+  rock: { name: "rock", id: rockId, img: rockImg },
+  house: { name: "house", id: houseId, img: houseImg },
+};
 
 function getMatrixLength() {
   const value = document.querySelector("#select-size").value;
@@ -11,54 +30,34 @@ function createMatrix(lenght) {
   return new Array(lenght).fill(0).map(() => new Array(lenght).fill(0));
 }
 
-function getRandomCoordinates(maxCoordinate) {
+function getRandomFreeCoordinate(maxCoordinate) {
   const x = Math.floor(Math.random() * maxCoordinate);
   const y = Math.floor(Math.random() * maxCoordinate);
+
+  if (MATRIX[y][x] !== freeCell) {
+    return getRandomFreeCoordinate(selectedMatrixSize);
+  }
   return [x, y];
 }
 
 function setCoordinates(character) {
-  const [x, y] = getRandomCoordinates(getMatrixLength());
-  switch (character) {
-    case "bunny":
-      if (MATRIX[x][y] === 0) {
-        return (MATRIX[x][y] = 1);
-      } else {
-        setCoordinates("bunny");
-      }
-      break;
-    case "wolf":
-      if (MATRIX[x][y] === 0) {
-        return (MATRIX[x][y] = 2);
-      } else {
-        setCoordinates("wolf");
-      }
-      break;
-    case "rock":
-      if (MATRIX[x][y] === 0) {
-        return (MATRIX[x][y] = 3);
-      } else {
-        setCoordinates("rock");
-      }
-      break;
-    case "house":
-      if (MATRIX[x][y] === 0) {
-        return (MATRIX[x][y] = 4);
-      } else {
-        setCoordinates("house");
-      }
-      break;
-  }
-  return;
+  const [x, y] = getRandomFreeCoordinate(selectedMatrixSize);
+  return (MATRIX[y][x] = characters[character].id);
+}
+
+function hideGameResult(result) {
+  return (document.getElementById(`${result}`).style.display = "none");
 }
 
 function startGame() {
   MATRIX = createMatrix(getMatrixLength());
-  wolfsAndRocksCount = (getMatrixLength() * 40) / 100;
+  selectedMatrixSize = getMatrixLength();
+  wolfsAndRocksCount = (selectedMatrixSize * 40) / 100;
+
   board.innerHTML = "";
   board.style.opacity = 1;
-  document.getElementById("won").style.display = "none";
-  document.getElementById("lose").style.display = "none";
+  hideGameResult("won");
+  hideGameResult("lose");
 
   MATRIX.forEach((arr) => arr.fill(0));
   for (let i = 0; i < wolfsAndRocksCount; i++) {
@@ -72,19 +71,15 @@ function startGame() {
   return createUI();
 }
 
-function createBoardSquare(x, y, count) {
+function createBoardSquare(x, y, squaresCount) {
   const square = document.createElement("div");
 
   board.appendChild(square);
   square.className = "square";
   square.id = `${y}${x}`;
 
-  if (count === 7) {
-    square.style.width = 13 + "%";
-  } else if (count === 10) {
-    square.style.width = 9 + "%";
-    square.style.height = 45 + "px";
-  }
+  square.style.width = Math.floor(100 / squaresCount - 1) + "%";
+  square.style.height = Math.floor(100 / squaresCount) + 40 + "px";
 
   return square;
 }
@@ -122,41 +117,95 @@ function createUI() {
   return isReady();
 }
 
-function getBunnyCoordinates() {
-  const y = MATRIX.findIndex((arr) => arr.includes(1));
-  const x = MATRIX[y].findIndex((el) => el === 1);
-  return [x, y];
+function getCharacterCoordinate(character) {
+  const coordinates = [];
+  MATRIX.forEach((y, indexY) => {
+    if (y.includes(characters[character].id)) {
+      y.filter((el, indexX) => {
+        if (el === characters[character].id) {
+          coordinates.push([indexX, indexY]);
+        }
+      });
+    }
+  });
+  return coordinates;
 }
 
-function getWolfCoordinates() {
-  const allY = MATRIX.reduce((total, arr, i) => {
-    arr.forEach((el, index) => {
-      if (el === 2) {
-        total.push(i);
+function getFreeCoordinates() {
+  const wolfesAndFreeCoordinates = [];
+  const wolfes = getCharacterCoordinate("wolf");
+
+  wolfes.forEach((wolf) => {
+    const freeCoordinatesForEach = [[], []];
+    const [x, y] = wolf;
+
+    freeCoordinatesForEach[0] = [x, y];
+    if (MATRIX[y][x + 1] !== undefined && MATRIX[y][x + 1] === freeCell) {
+      freeCoordinatesForEach[1].push([x + 1, y]);
+    }
+    if (MATRIX[y][x - 1] !== undefined && MATRIX[y][x - 1] === freeCell) {
+      freeCoordinatesForEach[1].push([x - 1, y]);
+    }
+    if (
+      MATRIX[y + 1] &&
+      MATRIX[y + 1][x] !== undefined &&
+      MATRIX[y + 1][x] === freeCell
+    ) {
+      freeCoordinatesForEach[1].push([x, y + 1]);
+    }
+    if (
+      MATRIX[y - 1] &&
+      MATRIX[y - 1][x] !== undefined &&
+      MATRIX[y - 1][x] === freeCell
+    ) {
+      freeCoordinatesForEach[1].push([x, y - 1]);
+    }
+    wolfesAndFreeCoordinates.push(freeCoordinatesForEach);
+  });
+  return detectClosestDirection(wolfesAndFreeCoordinates);
+}
+
+function detectClosestDirection(wolfesAndFreeCoordinates) {
+  const [bunnyX, bunnyY] = getCharacterCoordinate("bunny")[0];
+  const allWolfesClosestCoordinates = [];
+  const wolfAndClosestCoordinate = [[], []];
+  wolfesAndFreeCoordinates.forEach((wolf) => {
+    const [oldX, oldY] = wolf[0];
+    let minimumC = 9;
+    console.log(minimumC);
+    wolf[1].forEach((freeCoordinate) => {
+      const [x, y] = freeCoordinate;
+      // Pythagoras theorem
+      const a = Math.abs(bunnyX - x);
+      const b = Math.abs(bunnyY - y);
+      const c = Math.floor(Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2)));
+      if (c < minimumC) {
+        minimumC = c;
+        wolfAndClosestCoordinate[0] = [oldX, oldY];
+        // TODO: always same wtf
+        wolfAndClosestCoordinate[1] = [x, y];
       }
     });
-    return total;
-  }, []);
+    allWolfesClosestCoordinates.push(wolfAndClosestCoordinate);
+  });
+  console.log("CLOSEST: ", allWolfesClosestCoordinates);
+  return allWolfesClosestCoordinates;
+}
 
-  const allX = [];
-  MATRIX.map((arr) =>
-    arr.forEach((el, index) => {
-      if (el === 2) {
-        allX.push(index);
-      }
-    })
-  );
-  const wolfCoordinates = [];
-  for(let i = 0; i < wolfsAndRocksCount; i ++){
-    wolfCoordinates.push([allX[i], allY[i]])
-  }
-  return wolfCoordinates;
+function wolfAttack() {
+  getCharacterCoordinate("bunny");
+
+  getFreeCoordinates();
+  // detectClosestDirection();
+  // moveToClosest();
 }
 
 function changeWolfCooridnates() {
-  const [a, b] = getBunnyCoordinates();
-  const wolfesCoordinates = getWolfCoordinates();
-  for (let i = 0; i < wolfsAndRocksCount; i++) {
+  wolfAttack();
+  const [a, b] = getCharacterCoordinate("bunny")[0];
+
+  const wolfesCoordinates = getCharacterCoordinate("wolf");
+  for (let i = 0; i < wolfsAndRocksCount - 1; i++) {
     const [x, y] = wolfesCoordinates[i];
     let newX,
       newY = null;
@@ -207,6 +256,7 @@ function changeWolfCooridnates() {
       }
     }
   }
+  return;
 }
 
 function moveWolf(oldX, oldY, x, y) {
@@ -233,7 +283,7 @@ function changeBunnyPosition(oldX, oldY, x, y) {
 }
 
 function moveLeft() {
-  const [x, y] = getBunnyCoordinates();
+  const [x, y] = getCharacterCoordinate("bunny")[0];
   if (x !== 0 && MATRIX[y][x - 1] === 0) {
     MATRIX[y].splice(x, 1, 0);
     MATRIX[y].splice(x - 1, 1, 1);
@@ -256,7 +306,7 @@ function moveLeft() {
 }
 
 function moveRight() {
-  const [x, y] = getBunnyCoordinates();
+  const [x, y] = getCharacterCoordinate("bunny")[0];
   if (x !== MATRIX[y].length - 1 && MATRIX[y][x + 1] === 0) {
     MATRIX[y].splice(x, 1, 0);
     MATRIX[y].splice(x + 1, 1, 1);
@@ -279,7 +329,7 @@ function moveRight() {
 }
 
 function moveUp() {
-  const [x, y] = getBunnyCoordinates();
+  const [x, y] = getCharacterCoordinate("bunny")[0];
   if (y !== 0 && MATRIX[y - 1][x] === 0) {
     MATRIX[y].splice(x, 1, 0);
     MATRIX[y - 1].splice(x, 1, 1);
@@ -301,7 +351,7 @@ function moveUp() {
   return changeWolfCooridnates();
 }
 function moveDown() {
-  const [x, y] = getBunnyCoordinates();
+  const [x, y] = getCharacterCoordinate("bunny")[0];
   if (y !== MATRIX.length - 1 && MATRIX[y + 1][x] === 0) {
     MATRIX[y].splice(x, 1, 0);
     MATRIX[y + 1].splice(x, 1, 1);
@@ -330,7 +380,7 @@ function endGame(result) {
 }
 
 function moveBunny(e) {
-  getWolfCoordinates();
+  getCharacterCoordinate("wolf");
   if (!board.innerHTML) {
     e.stopPropagation;
     e.preventDefault;
