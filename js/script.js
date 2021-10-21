@@ -19,24 +19,32 @@ const edgeCells = {
 };
 
 const characters = {
-  [BUNNY_CELL]: { name: "bunny", id: BUNNY_CELL },
-  [WOLF_CELL]: { name: "wolf", id: WOLF_CELL },
+  [BUNNY_CELL]: {
+    name: "bunny",
+    id: BUNNY_CELL,
+    allowedMoves: [FREE_CELL, WOLF_CELL, HOUSE_CELL],
+  },
+  [WOLF_CELL]: {
+    name: "wolf",
+    id: WOLF_CELL,
+    allowedMoves: [FREE_CELL, BUNNY_CELL],
+  },
   [ROCK_CELL]: { name: "rock", id: ROCK_CELL },
   [HOUSE_CELL]: { name: "house", id: HOUSE_CELL },
 };
 
-function getMatrixLength() {
+const getMatrixLength = () => {
   const value = document.querySelector("#select-size").value;
   return value ? parseInt(value) : DEFAULT_MATRIX_SIZE;
-}
+};
 
-function createMatrix(lenght, defaultValue) {
+const createMatrix = (lenght, defaultValue) => {
   return new Array(lenght)
     .fill(defaultValue)
     .map(() => new Array(lenght).fill(defaultValue));
-}
+};
 
-function getRandomFreeCoordinate(maxCoordinate) {
+const getRandomFreeCoordinate = (maxCoordinate) => {
   const x = Math.floor(Math.random() * maxCoordinate);
   const y = Math.floor(Math.random() * maxCoordinate);
 
@@ -44,18 +52,18 @@ function getRandomFreeCoordinate(maxCoordinate) {
     return getRandomFreeCoordinate(maxCoordinate);
   }
   return [x, y];
-}
+};
 
-function setCoordinates(character) {
+const setCoordinates = (character) => {
   const [x, y] = getRandomFreeCoordinate(selectedMatrixSize);
   MATRIX[y][x] = characters[character].id;
-}
+};
 
-function hideGameResult(result) {
+const hideGameResult = (result) => {
   document.getElementById(`${result}`).style.display = "none";
-}
+};
 
-function startGame() {
+const startGame = () => {
   MATRIX = createMatrix(getMatrixLength(), FREE_CELL);
   selectedMatrixSize = getMatrixLength();
   edgeCells.right = edgeCells.bottom = selectedMatrixSize - 1;
@@ -70,9 +78,9 @@ function startGame() {
   setCoordinates(HOUSE_CELL);
 
   return createUI();
-}
+};
 
-function createBoardSquare(x, y, squaresCount) {
+const createBoardSquare = (x, y, squaresCount) => {
   const square = document.createElement("div");
 
   board.appendChild(square);
@@ -82,16 +90,16 @@ function createBoardSquare(x, y, squaresCount) {
   square.style.width = Math.floor(100 / squaresCount - 1) + "%";
   square.style.height =
     Math.floor(100 / squaresCount) + DEFAULT_CELL_HEIGHT + "px";
-}
+};
 
-function setCharacter(name, x, y) {
+const setCharacter = (name, x, y) => {
   const square = document.getElementById(`${y}${x}`);
   const character = document.createElement("div");
   character.className = name;
   return square.appendChild(character);
-}
+};
 
-function createUI() {
+const createUI = () => {
   board.innerHTML = "";
   board.style.opacity = 1;
   hideGameResult("won");
@@ -105,10 +113,10 @@ function createUI() {
       }
     })
   );
-  return isReady();
-}
+  return gameReady();
+};
 
-function getCharacterCoordinate(character) {
+const getCharacterCoordinate = (character) => {
   const coordinates = [];
   MATRIX.forEach((yAxis, y) => {
     yAxis.filter((el, x) => {
@@ -118,59 +126,54 @@ function getCharacterCoordinate(character) {
     });
   });
   return coordinates;
-}
+};
 
-function isAlowedToMove(x, y) {
-  if (MATRIX[y] && MATRIX[y][x] !== undefined) {
-    if (MATRIX[y][x] === FREE_CELL || MATRIX[y][x] === BUNNY_CELL) {
-      return true;
-    }
+const isAlowedToMove = (character, x, y) => {
+  if (MATRIX[y]) {
+    return characters[character].allowedMoves.includes(MATRIX[y][x]);
   }
-  return false;
-}
+};
 
-function getFreeCoordinates(wolf) {
+const getFreeCoordinates = (wolf) => {
   const [x, y] = wolf;
-  const freeCoordinates = [[x, y], []];
+  const wolfCoordinates = { current: [x, y], free: [] };
+  const allowedMoves = [
+    { x: x + 1, y },
+    { x: x - 1, y },
+    { x, y: y + 1 },
+    { x, y: y - 1 },
+  ];
 
-  if (isAlowedToMove(x + 1, y)) {
-    freeCoordinates[1].push([x + 1, y]);
-  }
-  if (isAlowedToMove(x - 1, y)) {
-    freeCoordinates[1].push([x - 1, y]);
-  }
-  if (isAlowedToMove(x, y + 1)) {
-    freeCoordinates[1].push([x, y + 1]);
-  }
-  if (isAlowedToMove(x, y - 1)) {
-    freeCoordinates[1].push([x, y - 1]);
-  }
-  return detectClosestDirection(freeCoordinates);
-}
+  allowedMoves.forEach((move) => {
+    if (isAlowedToMove(WOLF_CELL, move.x, move.y)) {
+      wolfCoordinates.free.push([move.x, move.y]);
+    }
+  });
+  return detectClosestDirection(wolfCoordinates);
+};
 
-function detectClosestDirection(wolf) {
-  let minimumHypotenuse = 99;
+const detectClosestDirection = (coordinates) => {
   const [bunnyX, bunnyY] = getCharacterCoordinate(BUNNY_CELL)[0];
-  const [x, y] = wolf[0];
-  const wolfAndClosestCoordinate = [[x, y], []];
-
-  wolf[1].forEach((freeCoordinate) => {
+  const [x, y] = coordinates.current;
+  const wolfCoordinates = { current: [x, y], closest: [] };
+  coordinates.free.reduce((minHypotenuse, freeCoordinate) => {
     const [newX, newY] = freeCoordinate;
     // Pythagoras theorem below
     const a = Math.abs(bunnyX - newX);
     const b = Math.abs(bunnyY - newY);
     const c = Math.floor(Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2)));
-    if (c < minimumHypotenuse) {
-      minimumHypotenuse = c;
-      wolfAndClosestCoordinate[1] = [newX, newY];
+    if (minHypotenuse === null || c < minHypotenuse) {
+      minHypotenuse = c;
+      wolfCoordinates.closest = [newX, newY];
     }
-  });
-  return changeWolfCoordinate(wolfAndClosestCoordinate);
-}
+    return minHypotenuse;
+  }, (minHypotenuse = null));
+  return changeWolfCoordinate(wolfCoordinates);
+};
 
-function changeWolfCoordinate(wolfAndClosestCoordinate) {
-  const [x, y] = wolfAndClosestCoordinate[0];
-  const [newX, newY] = wolfAndClosestCoordinate[1];
+const changeWolfCoordinate = (wolfCoordinates) => {
+  const [x, y] = wolfCoordinates.current;
+  const [newX, newY] = wolfCoordinates.closest;
 
   if (MATRIX[newY][newX] === BUNNY_CELL) {
     return endGame("lose");
@@ -178,9 +181,9 @@ function changeWolfCoordinate(wolfAndClosestCoordinate) {
     moveCharacter(WOLF_CELL, x, y, newX, newY);
   }
   return;
-}
+};
 
-function moveCharacter(characterCell, x, y, newX, newY) {
+const moveCharacter = (characterCell, x, y, newX, newY) => {
   MATRIX[y][x] = FREE_CELL;
   MATRIX[newY][newX] = characterCell;
   const oldSquare = document.getElementById(`${y}${x}`);
@@ -188,14 +191,14 @@ function moveCharacter(characterCell, x, y, newX, newY) {
   if (oldSquare && oldSquare.childNodes[0]) {
     square.appendChild(oldSquare.childNodes[0]);
   }
-}
+};
 
-function wolfAttack() {
+const wolfAttack = () => {
   const wolfes = getCharacterCoordinate(WOLF_CELL);
   wolfes.forEach(getFreeCoordinates);
-}
+};
 
-function changeBunnyCoordinate(direction, step, fromEdge, toEdge) {
+const changeBunnyCoordinate = (direction, step, fromEdge, toEdge) => {
   const [x, y] = getCharacterCoordinate(BUNNY_CELL)[0];
   let [newX, newY] = [x, y];
   let axis = direction === "x" ? x : y;
@@ -206,29 +209,30 @@ function changeBunnyCoordinate(direction, step, fromEdge, toEdge) {
   if (direction === "x") newX = axis;
   else newY = axis;
 
-  return checkGameStatus(x, y, newX, newY);
-}
+  if (MATRIX[newY][newX] === FREE_CELL) {
+    moveCharacter(BUNNY_CELL, x, y, newX, newY);
+    wolfAttack();
+  }
+  if(MATRIX[newY][newX] === ROCK_CELL) wolfAttack();
+  return checkGameStatus(newX, newY);
+};
 
-function checkGameStatus(x, y, newX, newY) {
+const checkGameStatus = (newX, newY) => {
   switch (MATRIX[newY][newX]) {
-    case FREE_CELL:
-      moveCharacter(BUNNY_CELL, x, y, newX, newY);
-      break;
     case WOLF_CELL:
       return endGame("lose");
     case HOUSE_CELL:
       return endGame("won");
   }
-  wolfAttack();
-}
+};
 
-function endGame(result) {
+const endGame = (result) => {
   board.style.opacity = "0.3";
   board.innerHTML = "";
   document.getElementById(`${result}`).style.display = "block";
-}
+};
 
-function moveBunny(e) {
+const moveBunny = (e) => {
   getCharacterCoordinate(WOLF_CELL);
   if (!board.innerHTML) {
     e.stopPropagation;
@@ -249,8 +253,8 @@ function moveBunny(e) {
       changeBunnyCoordinate("y", 1, edgeCells.bottom, edgeCells.top);
       break;
   }
-}
+};
 
-function isReady() {
+const gameReady = () => {
   window.addEventListener("keydown", moveBunny);
-}
+};
