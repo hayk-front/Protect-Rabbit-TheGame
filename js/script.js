@@ -19,7 +19,7 @@ const edgeCells = {
 };
 
 const characters = {
-  [BUNNY_CELL]: { id: BUNNY_CELL },
+  [BUNNY_CELL]: { name: "bunny", id: BUNNY_CELL },
   [WOLF_CELL]: { name: "wolf", id: WOLF_CELL },
   [ROCK_CELL]: { name: "rock", id: ROCK_CELL },
   [HOUSE_CELL]: { name: "house", id: HOUSE_CELL },
@@ -65,6 +65,7 @@ function startGame() {
     setCoordinates(WOLF_CELL);
     setCoordinates(ROCK_CELL);
   }
+
   setCoordinates(BUNNY_CELL);
   setCoordinates(HOUSE_CELL);
 
